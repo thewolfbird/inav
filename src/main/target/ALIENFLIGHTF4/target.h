@@ -67,7 +67,7 @@
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 
-#define MAG_MPU9250_ALIGN       CW180_DEG_FLIP
+#define MAG_MPU9250_ALIGN       CW0_DEG
 
 #define USE_BARO
 #define BARO_I2C_BUS             BUS_I2C1
