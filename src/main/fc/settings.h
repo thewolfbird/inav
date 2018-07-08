@@ -100,6 +100,10 @@ setting_min_t settingGetMin(const setting_t *val);
 // depends on the target and build options, but will always be an unsigned
 // integer (e.g. uintxx_t,)
 setting_max_t settingGetMax(const setting_t *val);
+// Returns the string in the table which corresponds to the value v
+// for the given setting. If the setting mode is not MODE_LOOKUP or
+// if the value is out of range, it returns NULL.
+const char * settingLookupValueName(const setting_t *val, unsigned v);
 // Returns the setting value as a const char * iff the setting is of type
 // VAR_STRING. Otherwise it returns NULL.
 const char * settingGetString(const setting_t *val);

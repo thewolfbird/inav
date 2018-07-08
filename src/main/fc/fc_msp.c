@@ -2679,6 +2679,57 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
     return true;
 }
 
+static bool mspSettingInfoCommand(sbuf_t *dst, sbuf_t *src)
+{
+    const setting_t *setting = mspReadSettingName(src);
+    if (!setting) {
+        return false;
+    }
+
+    // Parameter Group ID
+    sbufWriteU16(dst, settingGetPgn(setting));
+
+    // Type, section and mode
+    sbufWriteU8(dst, SETTING_TYPE(setting));
+    sbufWriteU8(dst, SETTING_SECTION(setting));
+    sbufWriteU8(dst, SETTING_MODE(setting));
+
+    // Min as int32_t
+    int32_t min = settingGetMin(setting);
+    sbufWriteU32(dst, (uint32_t)min);
+    // Max as uint32_t
+    uint32_t max = settingGetMax(setting);
+    sbufWriteU32(dst, max);
+
+    // If the setting uses a table, send each possible string (null terminated)
+    if (SETTING_MODE(setting) == MODE_LOOKUP) {
+        for (int ii = (int)min; ii <= (int)max; ii++) {
+            const char *name = settingLookupValueName(setting, ii);
+            sbufWriteDataSafe(dst, name, strlen(name) + 1);
+        }
+    }
+    return true;
+}
+
+static bool mspSettingsListCommand(sbuf_t *dst, sbuf_t *src)
+{
+    uint16_t start;
+    uint16_t count;
+    char buf[SETTING_MAX_NAME_LENGTH];
+
+    if (sbufReadU16Safe(src, &start) && sbufReadU16Safe(src, &count)) {
+        count = MIN(count, 10);
+        int end = MIN(start + count, SETTINGS_TABLE_COUNT - 1);
+        for (int ii = start; ii <= end; ii++) {
+            const setting_t *setting = &settingsTable[ii];
+            settingGetName(setting, buf);
+            sbufWriteDataSafe(dst, buf, strlen(buf) + 1);
+        }
+        return true;
+    }
+    return false;
+}
+
 bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResult_e *ret)
 {
     switch (cmdMSP) {
@@ -2703,6 +2754,14 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
     case MSP2_COMMON_SET_SETTING:
         *ret = mspSetSettingCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_COMMON_SETTING_INFO:
+        *ret = mspSettingInfoCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_COMMON_SETTINGS_LIST:
+        *ret = mspSettingsListCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
         break;
 
 #if defined(USE_OSD)
